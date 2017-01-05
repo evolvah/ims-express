@@ -1,0 +1,10 @@
+{
+  "dependencies" : {
+    "express" : "*",
+    "body-parser" : "*",
+    "crypto" : "*",
+    "jsonwebtoken" : "*",
+//    "redis" : "*"
+  }
+}
+
