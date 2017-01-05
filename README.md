@@ -1,2 +1,5 @@
 # ims-express
-IMS PoC built in ExpressJS
+Identity Managment Service PoC built in ExpressJS.
+
+My first Node.js project.
+
