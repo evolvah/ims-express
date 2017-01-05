@@ -3,8 +3,7 @@
     "express" : "*",
     "body-parser" : "*",
     "crypto" : "*",
-    "jsonwebtoken" : "*",
-//    "redis" : "*"
+    "jsonwebtoken" : "*"
   }
 }
 
