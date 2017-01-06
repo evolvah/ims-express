@@ -16,6 +16,8 @@ var config = {
     }
 }
 
+var evictedJwt = {}
+
 // Express application object
 var app = express()
 
@@ -28,8 +30,8 @@ app.use(bodyParser.json())
 // it is possible to implement a challenge-response mechanism that is
 // resilient to traffic capture and reconstruction.
 app.post("/session/start", function (req, res) {
-    var claims = {}
-    // Attempt a lookup of the user in the underlying database. Overwrites the fourth arg!
+    var claims = { "authenticated" : false }
+    // Attempt a lookup of the user in the underlying database. Modifies the fourth arg!
     userDb.getUserClaims(
         req.body.tenant,
         req.body.login,
@@ -38,22 +40,78 @@ app.post("/session/start", function (req, res) {
     )
 
     var responseBody = {}
-    // Decorate the response if userInfo is not empty
-    if (Object.keys(claims).length > 0) {
+    // Decorate the response if user was authenticated sucessfully
+    if (claims.authenticated) {
         // Append the JWT and fill in a few more fields
         responseBody.jwt = jwt.sign(
             claims,
             config.jwt.symmetricSignature,
             { "expiresIn" : config.jwt.defaultExpirationPeriod }
         )
+        responseBody.message = "OK"
     } else {
         // Report an error if no user was found or authentication failed
         var clientIpAddr = req.headers['x-forwarded-for'] || req.connection.remoteAddress
-        responseBody.message = `Authentication failed for ${login}@${tenant}. Client address ${clientIpAddr}`
+        responseBody.message = `Authentication failed for ${req.body.login}@${req.body.tenant}. Client address ${clientIpAddr}`
     }
 
     // Ship the response out
     res.json(responseBody)
+})
+
+function isJwtValid(jwtToValidate) {
+    var found = true
+    try {
+        jwt.verify(jwtToValidate, config.jwt.symmetricSignature)
+    } catch (err) {
+        found = false
+    }
+    return found
+}
+
+// Evict/logout a session
+app.post("/session/end", function (req, res) {
+    var responseBody = {}
+
+    var jwtToEvict = req.body.jwt
+
+    if (isJwtValid(jwtToEvict)) {
+        evictedJwt[jwtToEvict] = Date.now()
+        responseBody.message = "OK"
+    } else {
+        responseBody.message = "JWT is not valid and cannot be evicted"
+    }
+
+    // Ship the response out
+    res.json(responseBody)
+})
+
+// Evict/logout a session
+app.get("/session/state/:jwtToCheck", function (req, res) {
+    var jwtToCheck = req.params.jwtToCheck
+
+    var responseBody = {}
+
+    // If the JWT is still valid and it has not been evicted, it is ok
+    if (isJwtValid(jwtToCheck) && !evictedJwt.hasOwnProperty(jwtToCheck)) {
+        responseBody.message = "OK"
+    } else {
+        responseBody.message = "JWT is not valid"
+    }
+
+    // Ship the response out
+    res.json(responseBody)
+})
+
+// Debug function that dumps out the currently evicted JWT
+app.get("/session/debug/evictedJwt", function (req, res) {
+    res.json(evictedJwt)
+})
+
+// Debug function that clears the collection of evicted JWT
+app.delete("/session/debug/evictedJwt", function (req, res) {
+    evictedJwt = {}
+    res.json({"message" : "OK"})
 })
 
 // Let's fire it up
