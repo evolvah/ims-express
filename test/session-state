@@ -1,0 +1,14 @@
+#!/bin/bash
+
+function errorOut {
+    echo "ERROR: $1"
+    exit 1
+}
+
+JWT_VAL="$1"
+
+[ -z "$JWT_VAL" ] && errorOut "No JWT specified"
+
+curl -s http://127.0.0.1:4321/session/state/"$JWT_VAL" | jq '.'
+
+exit 0

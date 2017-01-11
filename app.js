@@ -114,6 +114,21 @@ app.delete("/session/debug/evictedJwt", function (req, res) {
     res.json({"message" : "OK"})
 })
 
+// Decode the JWT
+app.get("/session/debug/decode/:jwtToDecode", function (req, res) {
+    var responseBody = {}
+
+    var decodedJwt = jwt.decode(req.params.jwtToDecode)
+    if (decodedJwt) {
+        responseBody.message = "OK"
+        responseBody.decodedJwt = decodedJwt
+    } else {
+        responseBody.message = "Failed to decode the JWT"
+    }
+
+    res.json(responseBody)
+})
+
 // Let's fire it up
 app.listen(config.server.defaultTcpPort, function () {
     console.log(`Authentication server is up on port ${config.server.defaultTcpPort}`)

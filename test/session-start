@@ -1,0 +1,15 @@
+#!/bin/bash
+
+function errorOut {
+    echo "ERROR: $1"
+    exit 1
+}
+
+INPUT_FILE="$1"
+
+[ -z "$INPUT_FILE" ] && errorOut "No input file name specified"
+[ -f "$INPUT_FILE" ] || errorOut "File $INPUT_FILE is not accessible"
+
+curl -s -H "Content-type: application/json" -d @"$INPUT_FILE" -X POST http://127.0.0.1:4321/session/start | jq '.'
+
+exit 0

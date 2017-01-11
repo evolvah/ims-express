@@ -1,0 +1,5 @@
+#!/bin/bash
+
+curl -s http://127.0.0.1:4321/session/debug/evictedJwt | jq '.'
+
+exit 0
