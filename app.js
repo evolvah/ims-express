@@ -1,22 +1,10 @@
 // Identity Management Service prototype
 var express     = require("express")
 var bodyParser  = require("body-parser")
-var crypto      = require("crypto")
-var jwt         = require("jsonwebtoken")
-var userDb      = require("./UserDbMock.js")
 
-// Configuration defaults
-var config = {
-    "server" : {
-        "defaultTcpPort"            : "4321"
-    },
-    "jwt" : {
-        "defaultExpirationPeriod"   : "1h",
-        "symmetricSignature"        : "secret123"
-    }
-}
-
-var evictedJwt = {}
+var imsCore     = require("./ImsCore.js")
+var config      = require("./ConfigDefaults.js")
+imsCore.configure(config.defaults.ims)
 
 // Express application object
 var app = express()
@@ -30,107 +18,48 @@ app.use(bodyParser.json())
 // it is possible to implement a challenge-response mechanism that is
 // resilient to traffic capture and reconstruction.
 app.post("/session/start", function (req, res) {
-    var claims = { "authenticated" : false }
-    // Attempt a lookup of the user in the underlying database. Modifies the fourth arg!
-    userDb.getUserClaims(
-        req.body.tenant,
-        req.body.login,
-        req.body.password,
-        claims
-    )
-
-    var responseBody = {}
-    // Decorate the response if user was authenticated sucessfully
-    if (claims.authenticated) {
-        // Append the JWT and fill in a few more fields
-        responseBody.jwt = jwt.sign(
-            claims,
-            config.jwt.symmetricSignature,
-            { "expiresIn" : config.jwt.defaultExpirationPeriod }
-        )
-        responseBody.message = "OK"
-    } else {
-        // Report an error if no user was found or authentication failed
-        var clientIpAddr = req.headers['x-forwarded-for'] || req.connection.remoteAddress
-        responseBody.message = `Authentication failed for ${req.body.login}@${req.body.tenant}. Client address ${clientIpAddr}`
+    var args = {
+        "tenant"   : req.body.tenant,
+        "login"    : req.body.login,
+        "password" : req.body.password
     }
 
-    // Ship the response out
-    res.json(responseBody)
+    res.json(imsCore.session_start(args))
 })
-
-function isJwtValid(jwtToValidate) {
-    var found = true
-    try {
-        jwt.verify(jwtToValidate, config.jwt.symmetricSignature)
-    } catch (err) {
-        found = false
-    }
-    return found
-}
 
 // Evict/logout a session
 app.post("/session/end", function (req, res) {
-    var responseBody = {}
+    var args = { "jwt" : req.body.jwt }
 
-    var jwtToEvict = req.body.jwt
-
-    if (isJwtValid(jwtToEvict)) {
-        evictedJwt[jwtToEvict] = Date.now()
-        responseBody.message = "OK"
-    } else {
-        responseBody.message = "JWT is not valid and cannot be evicted"
-    }
-
-    // Ship the response out
-    res.json(responseBody)
+    res.json(imsCore.session_end(args))
 })
 
-// Evict/logout a session
+// Check session's JWT state
 app.get("/session/state/:jwtToCheck", function (req, res) {
-    var jwtToCheck = req.params.jwtToCheck
+    var args = { "jwtToCheck" : req.params.jwtToCheck }
 
-    var responseBody = {}
-
-    // If the JWT is still valid and it has not been evicted, it is ok
-    if (isJwtValid(jwtToCheck) && !evictedJwt.hasOwnProperty(jwtToCheck)) {
-        responseBody.message = "OK"
-    } else {
-        responseBody.message = "JWT is not valid"
-    }
-
-    // Ship the response out
-    res.json(responseBody)
+    res.json(imsCore.session_state(args))
 })
 
 // Debug function that dumps out the currently evicted JWT
 app.get("/session/debug/evictedJwt", function (req, res) {
-    res.json(evictedJwt)
+    res.json(imsCore.getEvictedJwt())
 })
 
 // Debug function that clears the collection of evicted JWT
 app.delete("/session/debug/evictedJwt", function (req, res) {
-    evictedJwt = {}
-    res.json({"message" : "OK"})
+    res.json(imsCore.clearEvictedJwt())
 })
 
 // Decode the JWT
 app.get("/session/debug/decode/:jwtToDecode", function (req, res) {
-    var responseBody = {}
+    var args = { "jwtToDecode" : req.params.jwtToDecode }
 
-    var decodedJwt = jwt.decode(req.params.jwtToDecode)
-    if (decodedJwt) {
-        responseBody.message = "OK"
-        responseBody.decodedJwt = decodedJwt
-    } else {
-        responseBody.message = "Failed to decode the JWT"
-    }
-
-    res.json(responseBody)
+    res.json(imsCore.decodeJwt(args))
 })
 
 // Let's fire it up
-app.listen(config.server.defaultTcpPort, function () {
-    console.log(`Authentication server is up on port ${config.server.defaultTcpPort}`)
+app.listen(config.defaults.server.defaultTcpPort, function () {
+    console.log(`Authentication server is up on port ${config.defaults.server.defaultTcpPort}`)
 })
 

@@ -50,7 +50,7 @@ function UserDb() {
                 "roles" : [ "user" ],
                 "password" : "qwerty"
             },
-            "wayne" : {
+            "clint" : {
                 "name" : "Clint Eastwood",
                 "email" : "clint.eastwood@viavisolutions.com",
                 "roles" : [ "user", "admin" ],
