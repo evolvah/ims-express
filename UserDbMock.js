@@ -1,5 +1,5 @@
 // Sample UserDb class
-"use strict"
+"use strict";
 
 function UserDb() {
     // precanned map of user entries
@@ -58,22 +58,22 @@ function UserDb() {
             },
         },
     };
-}
+};
 
 // Retrieve user claims if the user exists and is authenticated
 UserDb.prototype.getUserClaims = function(tenant, login, password, retVal) {
-    retVal.authenticated = false    // let's assume we did not find it
-    var userRecord = this.myUserDatabase[tenant] && this.myUserDatabase[tenant][login] || {}
+    retVal.authenticated = false;   // let's assume we did not find it
+    var userRecord = this.myUserDatabase[tenant] && this.myUserDatabase[tenant][login] || {};
     if (userRecord.password == password) {
         // Password matches
-        Object.assign(retVal, userRecord)
+        Object.assign(retVal, userRecord);
         // Decorate the return value
-        delete retVal.password              // remove password from the record
-        retVal.tenant           = tenant    // append tenant name
-        retVal.login            = login     // append user login name
-        retVal.authenticated    = true      // yes, we found it!
+        delete retVal.password;             // remove password from the record
+        retVal.tenant           = tenant;   // append tenant name
+        retVal.login            = login;    // append user login name
+        retVal.authenticated    = true;     // yes, we found it!
     }
-}
+};
 
 // export the UserDb object
 module.exports = new UserDb();

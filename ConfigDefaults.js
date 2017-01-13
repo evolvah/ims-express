@@ -10,8 +10,8 @@ function ConfigDefaults() {
             "jwtDefaultExpirationPeriod"    : "1h",
             "jwtSymmetricSignature"         : "secret123"
         }
-    }
-}
+    };
+};
 
 // export the ConfigDefaults object
 module.exports = new ConfigDefaults();
